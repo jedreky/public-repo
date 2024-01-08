@@ -13,19 +13,18 @@ import aws_cdk.aws_elasticloadbalancingv2_targets as targets
 import aws_cdk.aws_iam as iam
 import aws_cdk.aws_imagebuilder as imagebuilder
 
+from src.config import EXTERNAL_SSH_KEY, INTERNAL_SSH_KEY, WHISPER_AMIS
+
 from src.constants import (
     HTTP_PORT,
     SSH_PORT,
     DEFAULT_REGION,
-    EXTERNAL_SSH_KEY,
-    INTERNAL_SSH_KEY,
     EC2_USER,
     EC2_HOME_FOLDER,
     BUILD_INSTANCE_TYPES,
     CLIENT_INSTANCE_TYPE,
     REPO_NAME,
     FOLDER_NAME,
-    WHISPER_AMIS,
 )
 
 MAIN_FOLDER = Path(__file__).parent.parent
@@ -51,7 +50,7 @@ def clean_template(template):
         for x in val:
             if x in template[key]:
                 template[key].pop(x)
-                print(f"Removing {x} from {key}")
+                logging.debug(f"Removing {x} from {key}")
 
     for key, val in template["Resources"].items():
         if "Metadata" in val:
