@@ -1,0 +1,13 @@
+[Unit]
+Description=Whisper
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+Environment=PYTHONPATH=/home/ec2-user/public-repo/cloud-model-deployment
+ExecStart=/home/ec2-user/public-repo/cloud-model-deployment/venv/bin/python -m src.whisper
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

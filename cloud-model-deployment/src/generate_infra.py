@@ -1,5 +1,6 @@
 from enum import Enum, auto
 import json
+import logging
 from pathlib import Path
 import yaml
 
@@ -23,6 +24,7 @@ from src.constants import (
     BUILD_INSTANCE_TYPES,
     CLIENT_INSTANCE_TYPE,
     REPO_NAME,
+    FOLDER_NAME,
     WHISPER_AMIS,
 )
 
@@ -41,23 +43,7 @@ class InstanceRole(Enum):
 
 
 def clean_template(template):
-    def _is_relevant(key):
-        # if key.startswith("CustomVpcRestrictDefaultSGCustomResourceProvider"):
-        #     print(f"Removing resource {key}")
-        #     return False
-        #
-        # if key.startswith("VPCRestrictDefaultSecurityGroupCustomResource"):
-        #     print(f"Removing resource {key}")
-        #     return False
-
-        if key == "CDKMetadata":
-            print(f"Removing resource {key}")
-            return False
-
-        return True
-
     bits_to_remove = {
-        # "Conditions": {"CDKMetadataAvailable"},
         "Parameters": ["BootstrapVersion"],
         "Rules": ["CheckBootstrapVersion"],
     }
@@ -67,8 +53,6 @@ def clean_template(template):
                 template[key].pop(x)
                 print(f"Removing {x} from {key}")
 
-    # template["Resources"] = {key:val for key, val in template["Resources"].items() if _is_relevant(key)}
-    #
     for key, val in template["Resources"].items():
         if "Metadata" in val:
             val.pop("Metadata")
@@ -99,15 +83,15 @@ def render_code(code):
 
 
 def get_ami_type(instance_type):
-    if instance_type.startswith("g"):
-        ret = ("gpu",)
-    else:
-        ret = ("cpu",)
-
     if "g." in instance_type:
-        ret += ("arm",)
+        ret = ("arm",)
     else:
-        ret += ("x86",)
+        ret = ("x86",)
+
+    if instance_type.startswith("g"):
+        ret += ("gpu",)
+    else:
+        ret += ("cpu",)
 
     return ret
 
@@ -300,7 +284,7 @@ def get_main_component(scope, arch):
                 # f"export TMPDIR={EC2_HOME_FOLDER}/tmp",
                 f"cd {EC2_HOME_FOLDER}",
                 f"git clone https://github.com/jedreky/{REPO_NAME}.git",
-                f"cd {REPO_NAME}",
+                f"cd {REPO_NAME}/{FOLDER_NAME}",
                 "cp whisper.service /etc/systemd/system",
                 "python -m venv venv",
                 "source venv/bin/activate",
@@ -313,8 +297,8 @@ def get_main_component(scope, arch):
             "FinalCleanup",
             [
                 f"cd {EC2_HOME_FOLDER}",
-                f'echo "if [ -z \$VIRTUAL_ENV ]; then source {EC2_HOME_FOLDER}/{REPO_NAME}/venv/bin/activate; fi" >> .bash_profile',  # noqa: W605
-                f'echo "cd {EC2_HOME_FOLDER}/{REPO_NAME}" >> .bash_profile',
+                f'echo "if [ -z \$VIRTUAL_ENV ]; then source {EC2_HOME_FOLDER}/{REPO_NAME}/{FOLDER_NAME}/venv/bin/activate; fi" >> .bash_profile',  # noqa: W605
+                f'echo "cd {EC2_HOME_FOLDER}/{REPO_NAME}/{FOLDER_NAME}" >> .bash_profile',
                 f"chown -R {EC2_USER}:{EC2_USER} {EC2_HOME_FOLDER}",
             ],
         ),
@@ -361,7 +345,6 @@ class BuildStack(BaseStack):
         )
         instance_profile = iam.InstanceProfile(self, "InstanceProfile", role=role)
 
-        # breakpoint()
         base_amis = {
             x: ec2.MachineImage.latest_amazon_linux2023(
                 cpu_type=getattr(ec2.AmazonLinuxCpuType, f"{x.upper()}_64")
@@ -614,38 +597,39 @@ if __name__ == "__main__":
 
     for instance_type in [
         "t3.large",
-        # "t4g.large",
         "m6a.large",
         "m6in.large",
-        # "m6g.large",
         "c6a.xlarge",
-        # "c6g.xlarge",
         "g4dn.xlarge",
         "g5.xlarge",
-        # "g5g.xlarge",
     ]:
-        ServeStackSingleWorker(
-            app,
-            f"serve-stack-single-worker-{instance_type.replace('.', '-')}",
-            instance_type=instance_type,
-            debug_mode=True,
-        )
+        if WHISPER_AMIS[get_ami_type(instance_type)] is not None:
+            ServeStackSingleWorker(
+                app,
+                f"serve-stack-single-worker-{instance_type.replace('.', '-')}",
+                instance_type=instance_type,
+                debug_mode=True,
+            )
+        else:
+            logging.info(f"AMI for instance type {instance_type} not available")
 
     instance_type = "t3.large"
+    if WHISPER_AMIS[get_ami_type(instance_type)] is not None:
+        for with_autoscaling in [True, False]:
+            stack_name = f"serve-stack-{instance_type.replace('.', '-')}"
 
-    for with_autoscaling in [True, False]:
-        stack_name = f"serve-stack-{instance_type.replace('.', '-')}"
+            if with_autoscaling:
+                stack_name += "-autoscaling"
 
-        if with_autoscaling:
-            stack_name += "-autoscaling"
-
-        ServeStack(
-            app,
-            stack_name,
-            instance_type=instance_type,
-            with_autoscaling=with_autoscaling,
-            debug_mode=True,
-        )
+            ServeStack(
+                app,
+                stack_name,
+                instance_type=instance_type,
+                with_autoscaling=with_autoscaling,
+                debug_mode=True,
+            )
+    else:
+        logging.info(f"AMI for instance type {instance_type} not available")
 
     cloud_assembly = app.synth()
     save_templates(cloud_assembly)
