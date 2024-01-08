@@ -30,7 +30,7 @@ export INTERNAL_SSH_KEY=internal_ssh_key
 ```
 aws cloudformation deploy --template-file cfn_templates/build-stack.json --stack-name build-stack --capabilities CAPABILITY_NAMED_IAM
 ```
-5. Once the build stack has been deployed, you should go to the AWS EC2 ImageBuilder (https://eu-central-1.console.aws.amazon.com/imagebuilder/home) and click on Image pipelines. There, you should find two image pipelines: `WhisperCPUX86` and `WhisperGPUX86`. If you run such a pipeline it will build an image that we can later use for our EC2 instances. The `GPU` 
+5. Once the build stack has been deployed, you should go to the AWS EC2 ImageBuilder (https://eu-central-1.console.aws.amazon.com/imagebuilder/home) and click on Image pipelines. There, you should find two image pipelines: `WhisperCPUX86` and `WhisperGPUX86`. If you run such a pipeline it will build an image that we can later use for our EC2 instances. The `GPU`
 
 
 
