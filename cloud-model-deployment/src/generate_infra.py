@@ -102,8 +102,6 @@ def get_user_data(role, *, details=None):
     ]
 
     if role == InstanceRole.CLIENT:
-        user_data = []
-
         if (MAIN_FOLDER / "keys" / "internal_ssh_key.pem").exists():
             with open(MAIN_FOLDER / "keys" / "internal_ssh_key.pem") as f:
                 internal_ssh_key = f.read()
