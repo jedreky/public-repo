@@ -17,11 +17,11 @@ async def health(request):
 
 @routes.post("/transcribe/{model}")
 async def transcribe(request):
-    data2 = await request.multipart()
+    multipart = await request.multipart()
 
     with NamedTemporaryFile() as f:
         while True:
-            part = await data2.next()
+            part = await multipart.next()
 
             if part is not None:
                 data = await part.read()
