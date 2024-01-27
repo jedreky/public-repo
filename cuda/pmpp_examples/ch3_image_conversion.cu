@@ -10,7 +10,7 @@ const int CHANNELS = 3;
 
 char * get_main_folder() {
   char * main_folder = (char *) malloc( sizeof(char) * 100 );
-  strcpy(main_folder, "/home/legion/open-source/MLPlayground/cuda/pmpp_examples/");
+  strcpy(main_folder, "/home/legion/open-source/public-repo/cuda/pmpp_examples/");
   return main_folder;
 }
 
