@@ -1,7 +1,7 @@
 import struct
 
 def main():
-    total_size = 10000 * 10000
+    total_size = 3 ** 2
     data = [(j + 1) * 1.0 for j in range(total_size)]
     
     bytes = struct.pack("f" * total_size, *data)
